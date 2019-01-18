@@ -300,3 +300,15 @@ def fit_PL(filename, n_samples=100):
     plt.title('Fitted PL relation, with a={:.5f} and b={:.5f}'.format(a, b))
     plt.show()
     
+
+if __name__ == '__main__':
+    print('''
+================================================
+=     Introduction to astronomy (PHY2071)      =
+=             University of Surrey             =
+= Faculty of Engineering and Physical Sciences =
+=              Physics Department              =
+=                                              =
+=      For any enquiry about the scripts :     =
+=           m.delorme@surrey.ac.uk             =
+================================================''')
