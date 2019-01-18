@@ -19,6 +19,7 @@ import os, sys, warnings
 
 # Objects
 data     = None
+data_sub = None
 h0       = None
 h1       = None
 zs       = ZScaleInterval()
@@ -66,16 +67,21 @@ def get_parameter(param_name):
         return None
 
 def plot_data(zscale=True):
-    if zscale:
-        lims = zs.get_limits(data)
+    if bg_sub:
+        pdata = data_sub
     else:
-        lims = [data.min(), data.max()]
+        pdata = data
         
-    plt.imshow(data, cmap='Greys_r', vmin=lims[0], vmax=lims[1], origin='lower')
+    if zscale:
+        lims = zs.get_limits(pdata)
+    else:
+        lims = [pdata.min(), pdata.max()]
+        
+    plt.imshow(pdata, cmap='Greys_r', vmin=lims[0], vmax=lims[1], origin='lower')
     plt.show()
 
 def subtract_background(bg_wsize=50, sclip=3.0, plot=False):
-    global data, error, bg_sub
+    global data, error, data_sub, bg_sub
     sigma_clip = SigmaClip(sigma=sclip)
     bkg_estimator = MedianBackground()
     bkg = Background2D(data, (bg_wsize, bg_wsize), sigma_clip=sigma_clip, bkg_estimator=bkg_estimator)
@@ -83,7 +89,7 @@ def subtract_background(bg_wsize=50, sclip=3.0, plot=False):
         plt.imshow(bkg.background, origin='lower', cmap='Greys_r')
         plt.show()
     error = calc_total_error(data, bkg.background_rms, eff_gain)
-    data = data - bkg.background
+    data_sub = data - bkg.background
     bg_sub = True
     print('Background successfully subtracted')
     
@@ -95,10 +101,10 @@ def find_center(x, y, mod_fit_size=10, plot=True, contour=True):
     y_min  = y - mod_fit_size
     y_max  = y + mod_fit_size
 
-    window = data[y_min:y_max+1, x_min:x_max+1]
+    window = data_sub[y_min:y_max+1, x_min:x_max+1]
 
     # Initial guess 
-    z0     = data[y, x]
+    z0     = data_sub[y, x]
     m_init = models.Moffat2D(z0, x, y)
 
     manual_pick = False
@@ -161,7 +167,7 @@ def compute_photometry(x, y, aperture_r=3.0, sky_in=6.0, sky_out=8.0):
         print('          Performing photometry measures without error model')
         phot_table = aperture_photometry(data, apers)
     else:
-        phot_table = aperture_photometry(data, apers, error)
+        phot_table = aperture_photometry(data_sub, apers, error)
 
     # Mean sky subtraction
     bkg_mean  = phot_table['aperture_sum_1'] / annulus_apertures.area()
