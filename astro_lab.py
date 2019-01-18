@@ -6,13 +6,13 @@ from astropy.visualization import ZScaleInterval
 from photutils import aperture_photometry, Background2D, MedianBackground, CircularAnnulus, CircularAperture
 from photutils.utils import calc_total_error
 from mpl_toolkits.mplot3d import Axes3D
-from matplotlib.animation import FuncAnimation
 from scipy.interpolate import interp2d, RegularGridInterpolator
 from scipy.optimize import curve_fit
 from lmfit import Model, Parameter, minimize
 
+import matplotlib as mpl
+mpl.use('Qt4Agg')
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 import numpy as np
 import os, sys, warnings
 
