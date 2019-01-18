@@ -26,14 +26,6 @@ eff_gain = 0.0
 error    = None
 bg_sub   = False
 
-# Parameters
-sclip        = 3.0  # Sigma clipping
-bg_wsize     = 50   # Backgroudn window size
-aperture_r   = 3.0  # Radius of the circular aperture
-sky_in       = 6.0  # Sky annulus inner-ring radius
-sky_out      = 8.0  # Sky annulus outer-ring radius
-mod_fit_size = 10    # Size of the Moffat fitting window
-
 def open_file(filename):
     global data, h0, h1, eff_gain, bg_sub
     
@@ -82,7 +74,7 @@ def plot_data(zscale=True):
     plt.imshow(data, cmap='Greys_r', vmin=lims[0], vmax=lims[1], origin='lower')
     plt.show()
 
-def subtract_background(plot=False):
+def subtract_background(bg_wsize=50, sclip=3.0, plot=False):
     global data, error, bg_sub
     sigma_clip = SigmaClip(sigma=sclip)
     bkg_estimator = MedianBackground()
@@ -96,7 +88,7 @@ def subtract_background(plot=False):
     print('Background successfully subtracted')
     
 nx, ny = 0, 0 # Forced to include this in onclick
-def find_center(x, y, plot=True, contour=True):
+def find_center(x, y, mod_fit_size=10, plot=True, contour=True):
     global nx, ny
     x_min  = x - mod_fit_size
     x_max  = x + mod_fit_size
@@ -156,7 +148,7 @@ def find_center(x, y, plot=True, contour=True):
 
     return nx, ny
 
-def compute_photometry(x, y):
+def compute_photometry(x, y, aperture_r=3.0, sky_in=6.0, sky_out=8.0):
     print('Computing photometry at : ', x, y)
     # Aperture photometry : https://photutils.readthedocs.io/en/stable/aperture.html
     pos = [(x, y)]
