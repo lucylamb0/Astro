@@ -1,3 +1,6 @@
+import matplotlib as mpl
+mpl.use('Qt4Agg')
+
 from astropy.io import fits
 from astropy.stats import SigmaClip
 from astropy.modeling import models, fitting
@@ -10,8 +13,6 @@ from scipy.interpolate import interp2d, RegularGridInterpolator
 from scipy.optimize import curve_fit
 from lmfit import Model, Parameter, minimize
 
-import matplotlib as mpl
-mpl.use('Qt4Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import os, sys, warnings
