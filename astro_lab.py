@@ -77,7 +77,7 @@ def plot_data(zscale=True):
     else:
         lims = [pdata.min(), pdata.max()]
         
-    plt.imshow(pdata, cmap='Greys_r', vmin=lims[0], vmax=lims[1], origin='lower')
+    plt.imshow(pdata, cmap='Greys_r', vmin=lims[0], vmax=lims[1], origin='lower', interpolation='none')
     plt.show()
 
 def subtract_background(bg_wsize=50, sclip=3.0, plot=False):
@@ -86,7 +86,7 @@ def subtract_background(bg_wsize=50, sclip=3.0, plot=False):
     bkg_estimator = MedianBackground()
     bkg = Background2D(data, (bg_wsize, bg_wsize), sigma_clip=sigma_clip, bkg_estimator=bkg_estimator)
     if plot:
-        plt.imshow(bkg.background, origin='lower', cmap='Greys_r')
+        plt.imshow(bkg.background, origin='lower', cmap='Greys_r', interpolation='none')
         plt.show()
     error = calc_total_error(data, bkg.background_rms, eff_gain)
     data_sub = data - bkg.background
@@ -140,7 +140,7 @@ def find_center(x, y, mod_fit_size=10, plot=True, contour=True):
         lims = zs.get_limits(window)
         fig, ax = plt.subplots()
         
-        ax.imshow(window, origin='lower', vmin=lims[0], vmax=lims[1], extent=(x_min, x_max, y_min, y_max))
+        ax.imshow(window, origin='lower', vmin=lims[0], vmax=lims[1], extent=(x_min, x_max, y_min, y_max), interpolation='none')
 
         if manual_pick:
             cid = fig.canvas.mpl_connect('button_press_event', onclick)
