@@ -77,7 +77,7 @@ def plot_data(zscale=True):
     else:
         lims = [pdata.min(), pdata.max()]
         
-    plt.imshow(pdata, cmap='Greys_r', vmin=lims[0], vmax=lims[1], origin='lower', interpolation='none')
+    plt.imshow(pdata, cmap='Greys_r', vmin=lims[0], vmax=lims[1], origin='lower')
     plt.show()
 
 def subtract_background(bg_wsize=50, sclip=3.0, plot=False):
@@ -86,7 +86,7 @@ def subtract_background(bg_wsize=50, sclip=3.0, plot=False):
     bkg_estimator = MedianBackground()
     bkg = Background2D(data, (bg_wsize, bg_wsize), sigma_clip=sigma_clip, bkg_estimator=bkg_estimator)
     if plot:
-        plt.imshow(bkg.background, origin='lower', cmap='Greys_r', interpolation='none')
+        plt.imshow(bkg.background, origin='lower', cmap='Greys_r')
         plt.show()
     error = calc_total_error(data, bkg.background_rms, eff_gain)
     data_sub = data - bkg.background
@@ -95,6 +95,10 @@ def subtract_background(bg_wsize=50, sclip=3.0, plot=False):
     
 nx, ny = 0, 0 # Forced to include this in onclick
 def find_center(x, y, mod_fit_size=10, plot=True, contour=True):
+    if not bg_sub:
+        print('ERROR : You have not subtracted background ! Aborting !')
+        return
+    
     global nx, ny
     x_min  = x - mod_fit_size
     x_max  = x + mod_fit_size
@@ -140,7 +144,7 @@ def find_center(x, y, mod_fit_size=10, plot=True, contour=True):
         lims = zs.get_limits(window)
         fig, ax = plt.subplots()
         
-        ax.imshow(window, origin='lower', vmin=lims[0], vmax=lims[1], extent=(x_min, x_max, y_min, y_max), interpolation='none')
+        ax.imshow(window, origin='lower', vmin=lims[0], vmax=lims[1], extent=(x_min, x_max, y_min, y_max))
 
         if manual_pick:
             cid = fig.canvas.mpl_connect('button_press_event', onclick)
@@ -151,8 +155,7 @@ def find_center(x, y, mod_fit_size=10, plot=True, contour=True):
         pt = ax.scatter(nx, ny, s=5, marker='+', color='red')
             
         plt.show()
-
-    return nx, ny
+    print('Fitted centre : ', nx, ny)
 
 def compute_photometry(x, y, aperture_r=3.0, sky_in=6.0, sky_out=8.0):
     print('Computing photometry at : ', x, y)
@@ -204,6 +207,16 @@ def compute_photometry(x, y, aperture_r=3.0, sky_in=6.0, sky_out=8.0):
     return m, minf, msup, True
 
 def fit_period(epochs, magnitudes, errors, plot=True):
+    epochs     = np.asarray(epochs)
+    magnitudes = np.asarray(magnitudes)
+    errors     = np.asarray(errors)
+
+    ids = list(range(epochs.shape[0]))
+    ids.sort(key=lambda x:epochs[x])
+    epochs = epochs[ids]
+    magnitudes = magnitudes[ids]
+    errors = errors[ids]
+    
     def simple_fit(x, mu, amplitude, period, phase):
         return mu + amplitude*np.cos(x * 2.0 * np.pi / period + phase)
 
@@ -218,6 +231,7 @@ def fit_period(epochs, magnitudes, errors, plot=True):
 
     model = Model(simple_fit)
     params = model.make_params()
+
 
     t = epochs - epochs.min()
 
