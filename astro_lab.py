@@ -174,8 +174,8 @@ def compute_photometry(x, y, aperture_r=3.0, sky_in=6.0, sky_out=8.0):
         phot_table = aperture_photometry(data_sub, apers, error)
 
     # Mean sky subtraction
-    bkg_mean  = phot_table['aperture_sum_1'] / annulus_apertures.area()
-    bkg_sum   = bkg_mean * apertures.area()
+    bkg_mean  = phot_table['aperture_sum_1'] / annulus_apertures.area
+    bkg_sum   = bkg_mean * apertures.area
     final_sum = phot_table['aperture_sum_0'] - bkg_sum
 
     # Calculating zero-point : http://www.stsci.edu/hst/wfpc2/analysis/wfpc2_cookbook.html
