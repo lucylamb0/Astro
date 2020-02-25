@@ -1,3 +1,4 @@
+print('Importing libraries ... please wait ...')
 import matplotlib as mpl
 mpl.use('Qt4Agg')
 
