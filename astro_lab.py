@@ -1,6 +1,7 @@
 print('Importing libraries ... please wait ...')
 import matplotlib as mpl
-mpl.use('Qt4Agg')
+mpl.use('Qt5Agg')
+import time
 
 from astropy.io import fits
 from astropy.stats import SigmaClip
@@ -329,3 +330,9 @@ if __name__ == '__main__':
 =      For any enquiry about the scripts :     =
 =           m.delorme@surrey.ac.uk             =
 ================================================''')
+
+for i in range(1, 12):
+    string = ("/user/HS401/lc01390/Astro/fits{}.fits" .format(i))
+    open_file(string)
+    print(get_parameter("EXPEND"))
+    time.sleep(1)
