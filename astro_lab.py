@@ -158,6 +158,7 @@ def find_center(x, y, mod_fit_size=10, plot=True, contour=True):
             
         plt.show()
     print('Fitted centre : ', nx, ny)
+    return nx, ny
 
 def compute_photometry(x, y, aperture_r=3.0, sky_in=6.0, sky_out=8.0):
     print('Computing photometry at : ', x, y)
@@ -206,7 +207,7 @@ def compute_photometry(x, y, aperture_r=3.0, sky_in=6.0, sky_out=8.0):
     msup = -2.5 * np.log10(flux - ferr) + zero_pt
     
     print('Flux, magnitude, m_inf, m_sup : ', flux, m, minf, msup)
-    return m, minf, msup, True
+    return flux, m, minf, msup # why was this returning m, minf, msup, TRUE?
 
 def fit_period(epochs, magnitudes, errors, plot=True):
     epochs     = np.asarray(epochs)
@@ -331,8 +332,20 @@ if __name__ == '__main__':
 =           m.delorme@surrey.ac.uk             =
 ================================================''')
 
+list_of_cephids_x = [532.48, 482.013, 589.46, 419.452, 250.353, 566.646, 563.157]
+list_of_cephids_y = [726.22, 670.404, 574.12, 570.864, 315.597, 321.411, 100.006]
+epoch_dict = {}
+cephid_dict = {}
+
 for i in range(1, 12):
     string = ("/user/HS401/lc01390/Astro/fits{}.fits" .format(i))
     open_file(string)
+    epoch = get_parameter("EXPEND")
+    subtract_background(plot=False, bg_wsize=50)
+    for j in range(0, len(list_of_cephids_x)):
+        center_x, center_y = find_center(int(list_of_cephids_x[j]), int(list_of_cephids_y[j]))
+        flux, mag, minf, msup = compute_photometry(center_x, center_y)
+        cephid_dict['Cephid {}'.format(j+1)] = {"X": center_x, "Y": center_y, "FLUX": flux, "MAG": mag, "MINF": minf, "MSUP": msup}
+    epoch_dict["Epoch{}".format(epoch)] = {"Cephids": cephid_dict}
     print(get_parameter("EXPEND"))
     time.sleep(1)
