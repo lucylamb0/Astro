@@ -334,7 +334,6 @@ if __name__ == '__main__':
 
 list_of_cephids_x = [532.48, 482.013, 589.46, 419.452, 250.353, 566.646, 563.157]
 list_of_cephids_y = [726.22, 670.404, 574.12, 570.864, 315.597, 321.411, 100.006]
-epoch_dict = {}
 cephid_dict = {}
 
 for i in range(1, 12):
@@ -345,7 +344,17 @@ for i in range(1, 12):
     for j in range(0, len(list_of_cephids_x)):
         center_x, center_y = find_center(int(list_of_cephids_x[j]), int(list_of_cephids_y[j]))
         flux, mag, minf, msup = compute_photometry(center_x, center_y)
-        cephid_dict['Cephid {}'.format(j+1)] = {"X": center_x, "Y": center_y, "FLUX": flux, "MAG": mag, "MINF": minf, "MSUP": msup}
-    epoch_dict["Epoch{}".format(epoch)] = {"Cephids": cephid_dict}
+        if i ==1:
+            cephid_dict['Cephid {}'.format(j+1)] = {"Epoch {}".format(epoch): {"X": center_x, "Y": center_y, "FLUX": flux, "MAG": mag, "MINF": minf, "MSUP": msup}}
+        else:
+            cephid_dict['Cephid {}'.format(j+1)]["Epoch {}".format(epoch)] = {"X": center_x, "Y": center_y, "FLUX": flux, "MAG": mag, "MINF": minf, "MSUP": msup}
+    print(cephid_dict)
     print(get_parameter("EXPEND"))
     time.sleep(1)
+# fit period
+for i in range(1, 12):
+    fit_period()
+
+
+
+
