@@ -332,28 +332,68 @@ if __name__ == '__main__':
 =           m.delorme@surrey.ac.uk             =
 ================================================''')
 
-list_of_cephids_x = [532.48, 482.013, 589.46, 419.452, 250.353, 566.646, 563.157]
-list_of_cephids_y = [726.22, 670.404, 574.12, 570.864, 315.597, 321.411, 100.006]
-cephid_dict = {}
+def epochs_to_float_list(string_list):
+    float_list = []
+    for x in string_list:
+        float_list.append(float(x[6:]))
+    return float_list
 
-for i in range(1, 12):
-    string = ("/user/HS401/lc01390/Astro/fits{}.fits" .format(i))
-    open_file(string)
-    epoch = get_parameter("EXPEND")
-    subtract_background(plot=False, bg_wsize=50)
-    for j in range(0, len(list_of_cephids_x)):
-        center_x, center_y = find_center(int(list_of_cephids_x[j]), int(list_of_cephids_y[j]))
-        flux, mag, minf, msup = compute_photometry(center_x, center_y)
-        if i ==1:
-            cephid_dict['Cephid {}'.format(j+1)] = {"Epoch {}".format(epoch): {"X": center_x, "Y": center_y, "FLUX": flux, "MAG": mag, "MINF": minf, "MSUP": msup}}
-        else:
-            cephid_dict['Cephid {}'.format(j+1)]["Epoch {}".format(epoch)] = {"X": center_x, "Y": center_y, "FLUX": flux, "MAG": mag, "MINF": minf, "MSUP": msup}
-    print(cephid_dict)
-    print(get_parameter("EXPEND"))
-    time.sleep(1)
+import simplejson as json
+
+get_data = False
+
+list_of_cephids_x = [443.393, 561.436, 419.238, 415.331, 390.493, 256.534, 163.879]
+list_of_cephids_y = [631.487, 260.221, 242.051, 332.195, 347.265, 238.981, 262.424]
+no_of_fits = 8
+cephid_dict = {}
+# cephid_dict[cephid_number] = {epoch_number: [flux, mag, minf, msup]}
+if get_data == True:
+    with open("cephid_dict.json", "r") as f:
+        try:
+            cephid_dict = json.load(f)
+            print("loaded")
+        except:
+            print("failed to load")
+else:
+    for i in range(1, no_of_fits+1):
+        string = ("/user/HS401/lc01390/Astro/fits{}.fits" .format(i))
+        open_file(string)
+        epoch = get_parameter("EXPEND")
+        subtract_background(plot=False, bg_wsize=50)
+        for j in range(0, len(list_of_cephids_x)):
+            center_x, center_y = find_center(int(list_of_cephids_x[j]), int(list_of_cephids_y[j]), mod_fit_size=10)
+            flux, mag, minf, msup = compute_photometry(center_x, center_y)
+            time.sleep(0.1)
+            if i ==1:
+                cephid_dict['Cephid {}'.format(j+1)] = {"Epoch {}".format(epoch): {"X": center_x, "Y": center_y, "FLUX": flux, "MAG": mag, "MINF": minf, "MSUP": msup}}
+            else:
+                cephid_dict['Cephid {}'.format(j+1)]["Epoch {}".format(epoch)] = {"X": center_x, "Y": center_y, "FLUX": flux, "MAG": mag, "MINF": minf, "MSUP": msup}
+        print(cephid_dict)
+        print(get_parameter("EXPEND"))
+        time.sleep(1)
+
+
+
+with open('cephid_dict.json', 'w') as fp:
+    try:
+        json.dump(cephid_dict, fp)
+        print('Saved')
+    except:
+        print('Failed to save')
+
 # fit period
-for i in range(1, 12):
-    fit_period()
+for i in range(1, len(cephid_dict)+1):
+    list_of_epochs = epochs_to_float_list(list(cephid_dict['Cephid {}'.format(i)].keys()))
+    list_of_mags = []
+    list_of_mag_errs = []
+    for j in cephid_dict['Cephid {}'.format(i)].keys():
+        list_of_mags.append(cephid_dict['Cephid {}'.format(i)][j]['MAG'])
+        list_of_mag_errs.append(cephid_dict['Cephid {}'.format(i)][j]['MINF'] - cephid_dict['Cephid {}'.format(i)][j]['MSUP'])
+    try:
+        fit_period(list_of_epochs, list_of_mags, list_of_mag_errs)
+    except ValueError:
+        print("NaN values in data")
+        print("Cephid {}\n Epochs: {}\n mags: {}\n mag_errors: {}".format(i, list_of_epochs, list_of_mags, list_of_mag_errs))
 
 
 
