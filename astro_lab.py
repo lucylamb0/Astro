@@ -2,7 +2,7 @@ import csv
 
 print('Importing libraries ... please wait ...')
 import matplotlib as mpl
-mpl.use('Qt5Agg')
+# mpl.use('Qt5Agg')
 import time
 
 from astropy.io import fits
@@ -211,7 +211,7 @@ def compute_photometry(x, y, aperture_r=3.0, sky_in=6.0, sky_out=8.0):
     print('Flux, magnitude, m_inf, m_sup : ', flux, m, minf, msup)
     return flux, m, minf, msup # why was this returning m, minf, msup, TRUE?
 
-def fit_period(epochs, magnitudes, errors, plot=True):
+def fit_period(epochs, magnitudes, errors, cepheid, save_figure=False, plot=True):
     epochs     = np.asarray(epochs)
     magnitudes = np.asarray(magnitudes)
     errors     = np.asarray(errors)
@@ -259,6 +259,7 @@ def fit_period(epochs, magnitudes, errors, plot=True):
     print('Estimated mean luminosity : {} +/- {}'.format(mu, p['mu'].stderr))
     
     if plot:
+        plt.title('Graph showing the period of Cepheid {}'.format(cepheid))
         plt.errorbar(t, magnitudes, fmt='ob', yerr=errors, capsize=3, elinewidth=0.5, label='observations')
         plt.plot(t, best_fit, 'r-', label='fit')
         plt.plot(smooth_t, smooth_y, 'r--', label='smoothed fit')
@@ -266,13 +267,20 @@ def fit_period(epochs, magnitudes, errors, plot=True):
         plt.ylabel(r'Apparent magnitude')
         plt.gca().invert_yaxis()
         plt.legend()
+        if save_figure:
+            plt.savefig('{}_period_fit.png'.format(cepheid))
         plt.show()
+        response = input("Is this a cepheid ? (y/n)")
+    try:
+        response
+    except:
+        response = 'y'
 
-    return P, p['period'].stderr, mu, p['mu'].stderr
+    return P, p['period'].stderr, mu, p['mu'].stderr, response
 
 def fit_PL(filename, n_samples=100):
     try:
-        data = np.loadtxt(filename)
+        data = np.loadtxt(filename, delimiter=',')
     except:
         print('ERROR : Cannot open this file. Check if it exists and check the format')
         return
@@ -339,12 +347,13 @@ if __name__ == '__main__':
 def epochs_to_float_list(string_list):
     float_list = []
     for x in string_list:
+        # the first 6 characters are 'epoch' so we remove them
         float_list.append(float(x[6:]))
     return float_list
 
 import simplejson as json
 
-get_data = False
+get_data = True
 
 list_of_cephids_x = [432.921, 580.172, 419.238, 371.94, 390.493,
                      348.003, 163.879, 193.012, 260.026, 308.982, 98.9704, 31.9647]
@@ -388,24 +397,38 @@ with open('cephid_dict.json', 'w') as fp:
     except:
         print('Failed to save')
 
+print(cephid_dict)
 # fit period
 cephid_period_dict = {}
 list_cephid_NaN = []
+discovered_cephid_dict = {}
 for i in range(1, len(cephid_dict)+1):
     list_of_epochs = epochs_to_float_list(list(cephid_dict['Cephid {}'.format(i)].keys()))
     print(list_of_epochs)
     list_of_mags = []
     list_of_mag_errs = []
     for j in cephid_dict['Cephid {}'.format(i)].keys():
+        count = 0
         list_of_mags.append(cephid_dict['Cephid {}'.format(i)][j]['MAG'])
         list_of_mag_errs.append(cephid_dict['Cephid {}'.format(i)][j]['MINF'] - cephid_dict['Cephid {}'.format(i)][j]['MSUP'])
+
+        # if the last value is 0, remove it (it's a NaN and can't be used in the fit
+        if (list_of_mags[-1] == 0) or (list_of_mag_errs[-1] == 0):
+            list_of_mags.pop()
+            list_of_mag_errs.pop()
+            list_of_epochs.pop(count)
+        count += 1
+
     try:
         print("Cephid {}".format(i))
+        print("X: {} Y: {}" .format(cephid_dict['Cephid {}'.format(i)]['Epoch 49498.36270314']['X'], cephid_dict['Cephid {}'.format(i)]['Epoch 49498.36270314']['Y']))
         # print(
         #     "The average mag is {} \nand the average error in mag is {}".format(np.mean(list_of_mags),
         #                                                                                       np.mean(
         #                                                                                           list_of_mag_errs)))
-        period, period_err, mu, mu_error = fit_period(list_of_epochs, list_of_mags, list_of_mag_errs)
+        period, period_err, mu, mu_error, response= fit_period(list_of_epochs, list_of_mags, list_of_mag_errs,i, save_figure=False, plot=True)
+        if response == "y":
+            discovered_cephid_dict['Cephid {}'.format(i)] = {"Period": period, "Period error": period_err, "mu": mu, "mu error": mu_error}
         cephid_period_dict['Cephid {}'.format(i)] = {"Period": period, "Period error": period_err, "mu": mu, "mu error": mu_error}
     except ValueError:
         print("NaN values in data")
@@ -413,10 +436,27 @@ for i in range(1, len(cephid_dict)+1):
         list_cephid_NaN.append(i)
 
 print(list_cephid_NaN)
-# with open('cephid_period_dict2.csv', 'w') as csv_file:
-#     writer = csv.writer(csv_file)
-#     for value in cephid_period_dict.values():
-#         writer.writerow(value.values())
+with open('cephid_period_dict2.txt', 'w') as csv_file:
+    writer = csv.writer(csv_file)
+    for value in discovered_cephid_dict.values():
+        writer.writerow(value.values())
+
+fit_PL("cephid_period_dict2.txt")
+
+# transform the dictionary into a numpy array 4 column
+
+# cephid_period_array = np.zeros((len(cephid_period_dict), 4))
+# for i in range(0, len(cephid_period_dict)):
+#     cephid_period_array[i, 0] = list(cephid_period_dict.values())[i]['Period']
+#     cephid_period_array[i, 1] = list(cephid_period_dict.values())[i]['Period error']
+#     cephid_period_array[i, 2] = list(cephid_period_dict.values())[i]['mu']
+#     cephid_period_array[i, 3] = list(cephid_period_dict.values())[i]['mu error']
+# print(cephid_period_array)
+# fit_PL(cephid_period_array)
+
+
+
+
 
 
 
