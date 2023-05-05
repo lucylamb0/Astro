@@ -15,6 +15,7 @@ from photutils.utils import calc_total_error
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.interpolate import interp2d, RegularGridInterpolator
 from scipy.optimize import curve_fit
+from scipy import stats
 from lmfit import Model, Parameter, minimize
 
 import matplotlib.pyplot as plt
@@ -265,7 +266,7 @@ def fit_period(epochs, magnitudes, errors, cepheid, save_figure=False, plot=True
     smooth_t = np.linspace(t.min(), t.max(), 1000)
     smooth_y = simple_fit(smooth_t, mu, A, P, phi)
 
-    print('Estimated period : {} +/- {}'.format(P, p['period'].stderr))
+    print('=======================================\nCepheid: {}\nEstimated period : {} +/- {}'.format(cepheid, P, p['period'].stderr))
     print('Estimated mean luminosity : {} +/- {}'.format(mu, p['mu'].stderr))
 
     if plot:
@@ -334,6 +335,7 @@ def fit_PL(filename, n_samples=100):
     x = (nd[:, 0].min(), nd[:, 0].max())
     y = (PL(x[0], b), PL(x[1], b))
 
+
     plt.plot(x, y, '--k', label='Model')
     plt.legend()
     plt.xlabel('Period [d]')
@@ -357,11 +359,13 @@ if __name__ == '__main__':
 =           m.delorme@surrey.ac.uk             =
 ================================================''')
 import simplejson as json
+from uncertainties.umath import *
 
-user_check = True  # if True, the user will be asked to check if the fit is correct
+
+user_check = False  # if True, the user will be asked to check if the fit is correct
 get_data = True  # if True, the data will be obtained from json file
-plot = True  # if True, the fit will be plotted
-save_figure = True  # if True, the figure will be saved
+plot = False  # if True, the fit will be plotted
+save_figure = False  # if True, the figure will be saved
 
 background_subtraction_wsize = 50  # bg_wsize to be used for background subtraction
 mod_fits_size = 50  # mod_fits_size to be used for the modified fits
@@ -375,6 +379,14 @@ list_of_cephids_y = [624.758, 251.897, 258.963, 242.069, 346.961,
 
 no_of_fits = 8  # number of fits (epochs) being used
 
+lmc_a = -2.76 # LMC PL relation a value
+lmc_b = -4.16 # LMC PL relation b value
+
+extinction_term = 0.25  # extinction term to be used
+
+
+def unceratinty_prop(a, b, da, db):
+    return np.sqrt((da * (np.log10(a) - 1)) ** 2 + db ** 2)
 
 def epochs_to_float_list(string_list):
     float_list = []
@@ -438,7 +450,7 @@ discovered_cephid_dict = {}
 # leads to a list of epochs, a list of mags and a list of mag_errs
 for i in range(1, len(cephid_dict) + 1):
     list_of_epochs = epochs_to_float_list(list(cephid_dict['Cephid {}'.format(i)].keys()))
-    print(list_of_epochs)
+    # print("=======================================\n", list_of_epochs)
     list_of_mags = []
     list_of_mag_errs = []
     for j in cephid_dict['Cephid {}'.format(
@@ -456,16 +468,18 @@ for i in range(1, len(cephid_dict) + 1):
         count += 1
 
     # we now try to fit the period for each cephid
+    accepted_cepheids = [5,6,7,8,10,11]
     try:
-        # print(
-        #     "The average mag is {} \nand the average error in mag is {}".format(np.mean(list_of_mags),
-        #                                                                                       np.mean(
-        #                                                                                           list_of_mag_errs)))
         period, period_err, mu, mu_error, response = fit_period(list_of_epochs, list_of_mags, list_of_mag_errs, i,
                                                                 save_figure=save_figure, plot=plot,
                                                                 user_check=user_check)
 
         # from the response we can see if the fit was good or not based on the user input
+        if i in accepted_cepheids:
+            response = True
+        else:
+            response = False
+
         if response == True:
             discovered_cephid_dict['Cephid {}'.format(i)] = {"Period": period, "Period error": period_err, "mu": mu,
                                                              "mu error": mu_error}
@@ -495,24 +509,29 @@ with open('cephid_period_dict2.txt', 'w') as csv_file:
     for value in discovered_cephid_dict.values():
         writer.writerow(value.values())
 
+# WHY DOES A JUST GIVE A HARD CODED VALUE OF -2.76?????
 a,b = fit_PL("cephid_period_dict2.txt")
 print("a = {} and b = {}".format(a,b))
-lmc_a = -2.76
-lmc_b = -4.16
 
+# get magnitude using PL relation
 def get_magnitude_using_PL(a,b,period):
     m = a*np.log10(period-1) + b
     return m
 
 dis_mod_list = []
+# for each cephid we get the period and then use the PL relation to get the magnitude and add distance modulus to a list
 for i in discovered_cephid_dict:
-    print("The period of {} is {} and the magnitude from the lmc relation is {}".format(i, discovered_cephid_dict[i]['Period'], get_magnitude_using_PL(lmc_a,lmc_b,discovered_cephid_dict[i]['Period'])))
-    print("The period of {} is {} and the magnitude from the fit is {}".format(i, discovered_cephid_dict[i]['Period'], get_magnitude_using_PL(a,b,discovered_cephid_dict[i]['Period'])))
+    print("=======================================\nThe period of {} is {} and the absolute magnitude from the lmc relation is {}".format(i, discovered_cephid_dict[i]['Period'],
+                                                                                        get_magnitude_using_PL(lmc_a,lmc_b,discovered_cephid_dict[i]['Period'])))
+    print("The period of {} is {} and the estimated magnitude from the fit is {}".format(i, discovered_cephid_dict[i]['Period'],
+                                                                               get_magnitude_using_PL(a,b,discovered_cephid_dict[i]['Period'])))
     dis_mod_list.append(get_magnitude_using_PL(a,b,discovered_cephid_dict[i]['Period']) - get_magnitude_using_PL(lmc_a,lmc_b,discovered_cephid_dict[i]['Period']))
 
-print("The average distance modulus is {}".format(np.mean(dis_mod_list)))
+print("=======================================\nThe average distance modulus is {}".format(np.mean(dis_mod_list)))
+print("The standard deviation of the distance modulus is {}".format(np.std(dis_mod_list)))
+print("The standard error of the distance modulus is {}".format(np.std(dis_mod_list)/np.mean(dis_mod_list)))
 
-extinction_term = 0.25
+# find the distance in megaparsecs
 print("The distance in megaparsecs is {}".format((10**((np.mean(dis_mod_list) - extinction_term)/5 + 1))*10**-6))
 
 #save data
