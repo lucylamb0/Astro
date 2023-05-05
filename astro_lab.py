@@ -344,7 +344,7 @@ def fit_PL(filename, n_samples=100):
     plt.title('Fitted PL relation, with a={:.5f} and b={:.5f}'.format(a, b))
     plt.show()
 
-    return a, b
+    return a, ufloat(b, np.sqrt(pcov[0]))
 
 
 if __name__ == '__main__':
@@ -360,6 +360,7 @@ if __name__ == '__main__':
 ================================================''')
 import simplejson as json
 from uncertainties.umath import *
+from uncertainties import ufloat
 
 
 user_check = False  # if True, the user will be asked to check if the fit is correct
@@ -514,22 +515,25 @@ a,b = fit_PL("cephid_period_dict2.txt")
 print("a = {} and b = {}".format(a,b))
 
 # get magnitude using PL relation
-def get_magnitude_using_PL(a,b,period):
-    m = a*np.log10(period-1) + b
+def get_magnitude_using_PL(a,b,period, period_err=0):
+    m = ufloat(a*np.log10(period-1), 1/period_err)
+    m = m + b
     return m
 
 dis_mod_list = []
 # for each cephid we get the period and then use the PL relation to get the magnitude and add distance modulus to a list
 for i in discovered_cephid_dict:
+    lmc_mag = get_magnitude_using_PL(lmc_a,lmc_b,discovered_cephid_dict[i]['Period'], period_err=discovered_cephid_dict[i]['Period error'])
+    fit_mag = get_magnitude_using_PL(a,b,discovered_cephid_dict[i]['Period'], period_err=discovered_cephid_dict[i]['Period error'])
     print("=======================================\nThe period of {} is {} and the absolute magnitude from the lmc relation is {}".format(i, discovered_cephid_dict[i]['Period'],
-                                                                                        get_magnitude_using_PL(lmc_a,lmc_b,discovered_cephid_dict[i]['Period'])))
+                                                                                        lmc_mag))
     print("The period of {} is {} and the estimated magnitude from the fit is {}".format(i, discovered_cephid_dict[i]['Period'],
-                                                                               get_magnitude_using_PL(a,b,discovered_cephid_dict[i]['Period'])))
-    dis_mod_list.append(get_magnitude_using_PL(a,b,discovered_cephid_dict[i]['Period']) - get_magnitude_using_PL(lmc_a,lmc_b,discovered_cephid_dict[i]['Period']))
+                                                                                        fit_mag))
+    dis_mod_list.append(fit_mag - lmc_mag)
 
 print("=======================================\nThe average distance modulus is {}".format(np.mean(dis_mod_list)))
-print("The standard deviation of the distance modulus is {}".format(np.std(dis_mod_list)))
-print("The standard error of the distance modulus is {}".format(np.std(dis_mod_list)/np.mean(dis_mod_list)))
+# print("The standard deviation of the distance modulus is {}".format(np.std(dis_mod_list)))
+# print("The standard error of the distance modulus is {}".format(np.std(dis_mod_list)/np.mean(dis_mod_list)))
 
 # find the distance in megaparsecs
 print("The distance in megaparsecs is {}".format((10**((np.mean(dis_mod_list) - extinction_term)/5 + 1))*10**-6))

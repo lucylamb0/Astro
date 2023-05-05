@@ -1,7 +1,7 @@
-The average distance modulus is 31.236737028899196
-The distance in megaparsecs is 15.752424464575622
+The average distance modulus is 31.3+/-0.4
+The distance in megaparsecs is 15.9+/-3.1
 Using data:
- a = -2.76 and b = 27.076737028899192
+ a = -2.76 and b = 27.102+/-0.017
 lmc_a = -2.76 and lmc_b = -4.16
 extinction_term = 0.25
 discovered_cephid_dict = {'Cephid 5': {'Period': 34.12492289138163, 'Period error': 5.944613517517882, 'mu': 25.77829538368971, 'mu error': 0.056210288641540894}, 'Cephid 6': {'Period': 25.682974486993942, 'Period error': 1.2112283947311748, 'mu': 25.439044392902257, 'mu error': 0.44643555550455305}, 'Cephid 7': {'Period': 13.017680830779149, 'Period error': 0.9723615922000497, 'mu': 26.614007809508553, 'mu error': 0.15798910953275175}, 'Cephid 8': {'Period': 21.872226822839473, 'Period error': 0.8903769706833838, 'mu': 26.49533315861877, 'mu error': 0.2876306225302516}, 'Cephid 10': {'Period': 25.498666628076318, 'Period error': 3.2480479871203056, 'mu': 25.72051437570508, 'mu error': 0.23006711290606346}, 'Cephid 11': {'Period': 40.55716855466644, 'Period error': 4.325093349105061, 'mu': 25.838855999183753, 'mu error': 0.04517629607623151}}
