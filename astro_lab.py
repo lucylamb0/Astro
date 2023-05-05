@@ -385,6 +385,9 @@ lmc_b = -4.16 # LMC PL relation b value
 
 extinction_term = 0.25  # extinction term to be used
 
+accepted_cepheids = []
+accepted_cepheids = [5, 6, 7, 8, 10, 11]  # list of accepted cepheids that we already know from previous runs (optional, comment out for new runs)
+
 
 def unceratinty_prop(a, b, da, db):
     return np.sqrt((da * (np.log10(a) - 1)) ** 2 + db ** 2)
@@ -469,17 +472,17 @@ for i in range(1, len(cephid_dict) + 1):
         count += 1
 
     # we now try to fit the period for each cephid
-    accepted_cepheids = [5,6,7,8,10,11]
     try:
         period, period_err, mu, mu_error, response = fit_period(list_of_epochs, list_of_mags, list_of_mag_errs, i,
                                                                 save_figure=save_figure, plot=plot,
                                                                 user_check=user_check)
 
         # from the response we can see if the fit was good or not based on the user input
-        if i in accepted_cepheids:
-            response = True
-        else:
-            response = False
+        if len(accepted_cepheids) != 0:
+            if i in accepted_cepheids:
+                response = True
+            else:
+                response = False
 
         if response == True:
             discovered_cephid_dict['Cephid {}'.format(i)] = {"Period": period, "Period error": period_err, "mu": mu,
