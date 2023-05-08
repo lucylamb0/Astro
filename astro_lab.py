@@ -388,10 +388,6 @@ extinction_term = 0.25  # extinction term to be used
 accepted_cepheids = []
 accepted_cepheids = [5, 6, 7, 8, 10, 11]  # list of accepted cepheids that we already know from previous runs (optional, comment out for new runs)
 
-
-def unceratinty_prop(a, b, da, db):
-    return np.sqrt((da * (np.log10(a) - 1)) ** 2 + db ** 2)
-
 def epochs_to_float_list(string_list):
     float_list = []
     for x in string_list:
@@ -403,7 +399,7 @@ def epochs_to_float_list(string_list):
 cephid_dict = {}
 
 # cephid_dict[cephid_number] = {epoch_number: [flux, mag, minf, msup]}
-
+# check to see if we want to get the data from the json file or not
 if get_data == True:
     with open("cephid_dict.json", "r") as f:
         try:
@@ -412,11 +408,13 @@ if get_data == True:
         except:
             print("failed to load")
 else:
+    # loop through all the fits and subtract the background
     for i in range(1, no_of_fits + 1):
         string = ("/user/HS401/lc01390/Astro/fits{}.fits".format(i))
         open_file(string)
         epoch = get_parameter("EXPEND")
         subtract_background(plot=False, bg_wsize=background_subtraction_wsize)
+        # loop through all the cepheids and find their centers and compute their photometry
         for j in range(0, len(list_of_cephids_x)):
             print("Cephid {} Epoch {}".format(j + 1, epoch))
             center_x, center_y = find_center(int(list_of_cephids_x[j]), int(list_of_cephids_y[j]), cepheid_no=j + 1,
@@ -444,7 +442,7 @@ with open('cephid_dict.json', 'w') as fp:
 
 print(cephid_dict)
 
-# fit period
+# create some lists and dictionaries to store the data
 cephid_period_dict = {}
 list_cephid_NaN = []
 discovered_cephid_dict = {}
@@ -454,11 +452,9 @@ discovered_cephid_dict = {}
 # leads to a list of epochs, a list of mags and a list of mag_errs
 for i in range(1, len(cephid_dict) + 1):
     list_of_epochs = epochs_to_float_list(list(cephid_dict['Cephid {}'.format(i)].keys()))
-    # print("=======================================\n", list_of_epochs)
     list_of_mags = []
     list_of_mag_errs = []
-    for j in cephid_dict['Cephid {}'.format(
-            i)].keys():  # TODO: try using list_of_epochs instead of cephid_dict['Cephid {}'.format(i)].keys()
+    for j in cephid_dict['Cephid {}'.format(i)].keys():
         count = 0
         list_of_mags.append(cephid_dict['Cephid {}'.format(i)][j]['MAG'])
         list_of_mag_errs.append(
@@ -478,6 +474,8 @@ for i in range(1, len(cephid_dict) + 1):
                                                                 user_check=user_check)
 
         # from the response we can see if the fit was good or not based on the user input
+        # if user_check is False, response is always True
+        # We also check if we are using the accepted cepheids list and if we are, we only add the cepheids in that list
         if len(accepted_cepheids) != 0:
             if i in accepted_cepheids:
                 response = True
@@ -499,21 +497,13 @@ for i in range(1, len(cephid_dict) + 1):
                                                                           list_of_mag_errs))
         list_cephid_NaN.append(i)
 
-# print(list_cephid_NaN)
-# check for large errors in the period and mu
-# for i in discovered_cephid_dict:
-#     if (discovered_cephid_dict[i]['Period error'] > 0.5) or (cephid_period_dict[i]['mu error'] > 0.5):
-#         print("{} has a large error in period or mu" .format(i))
-#         print("Removing from discovered_cephid_dict")
-#         discovered_cephid_dict.pop(i)
-
 # store data in a csv file for handing to fit_PL
 with open('cephid_period_dict2.txt', 'w') as csv_file:
     writer = csv.writer(csv_file)
     for value in discovered_cephid_dict.values():
         writer.writerow(value.values())
 
-# WHY DOES A JUST GIVE A HARD CODED VALUE OF -2.76?????
+# fit the PL relation for our data
 a,b = fit_PL("cephid_period_dict2.txt")
 print("a = {} and b = {}".format(a,b))
 
@@ -534,18 +524,18 @@ for i in discovered_cephid_dict:
                                                                                         fit_mag))
     dis_mod_list.append(fit_mag - lmc_mag)
 
+# find the average distance modulus
 print("=======================================\nThe average distance modulus is {}".format(np.mean(dis_mod_list)))
-# print("The standard deviation of the distance modulus is {}".format(np.std(dis_mod_list)))
-# print("The standard error of the distance modulus is {}".format(np.std(dis_mod_list)/np.mean(dis_mod_list)))
-
 # find the distance in megaparsecs
 print("The distance in megaparsecs is {}".format((10**((np.mean(dis_mod_list) - extinction_term)/5 + 1))*10**-6))
 
-#save data
+#save data to a text file
 with open("Final_data.txt", 'w') as f:
     f.write("The average distance modulus is {}\n".format(np.mean(dis_mod_list)))
     f.write("The distance in megaparsecs is {}".format((10**((np.mean(dis_mod_list) - extinction_term)/5 + 1))*10**-6))
     string = ("\nUsing data:\n a = {} and b = {}".format(a,b) + "\nlmc_a = {} and lmc_b = {}".format(lmc_a,lmc_b) +
               "\nextinction_term = {}".format(extinction_term) + "\ndiscovered_cephid_dict = {}".format(discovered_cephid_dict))
+    f.write("\nThe epochs used are {}".format(list_of_epochs))
+    f.write("\nInitial ")
+    f.write("\nThe number of cepheids used is {}".format(len(discovered_cephid_dict)))
     f.write(string)
-
